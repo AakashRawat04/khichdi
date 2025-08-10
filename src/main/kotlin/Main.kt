@@ -11,15 +11,20 @@ fun main(args: Array<String>) {
     // ensures that we don't run into 'Address already in use' errors
     serverSocket.reuseAddress = true
 
-    val clientSocket = serverSocket.accept() // Wait for connection from client.
-    println("accepted new connection")
+    // respond to multiple requests with pong
+    while (true) {
+        val clientSocket = serverSocket.accept()
+        val outputStream = clientSocket.getOutputStream()
+        val inputStream = clientSocket.getInputStream()
 
-    val outputStream = clientSocket.outputStream
-
-    val pongResponse = "+PONG\r\n"
-    outputStream.write(pongResponse.toByteArray())
-    outputStream.flush()
-
-    clientSocket.close()
-    serverSocket.close()
+        while(!clientSocket.isClosed){
+            val input = inputStream.bufferedReader().readLine()
+            if (input == null || input.isEmpty()) {
+                clientSocket.close()
+                break
+            }
+            outputStream.write("+PONG\r\n".toByteArray())
+            outputStream.flush()
+        }
+    }
 }
