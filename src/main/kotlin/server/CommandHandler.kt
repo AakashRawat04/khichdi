@@ -2,12 +2,16 @@ package server
 
 import commands.*
 import protocol.RespParser
+import storage.InMemoryStore
 
 class CommandHandler {
     private val parser = RespParser()
+    private val store = InMemoryStore()
     private val commands = mapOf(
         "PING" to PingCommand(),
-        "ECHO" to EchoCommand()
+        "ECHO" to EchoCommand(),
+        "SET" to SetCommand(store),
+        "GET" to GetCommand(store)
     )
 
     fun handleCommand(input: String): String {

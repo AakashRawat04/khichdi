@@ -2,7 +2,6 @@ package protocol
 
 class RespParser {
     fun parse(input: String): List<String>{
-        println("Parsing RESP input: $input")
         val lines = input.split("\r\n")
         val result = mutableListOf<String>()
 
