@@ -1,57 +1,45 @@
 package storage
 
 class InMemoryStore {
+    // The single source of truth: unified keyspace for all types
     private val data = mutableMapOf<String, RedisValue>()
 
+    // Delegate type-specific operations to specialized classes
+    private val stringOps = StringOperations()
+    private val listOps = ListOperations()
+
+    // ===== String Operations =====
     fun set(
         key: String,
         value: String,
         expiryInMillis: Long? = null,
     ) {
-        val expiryAt =
-            if (expiryInMillis != null) {
-                System.currentTimeMillis() + expiryInMillis
-            } else {
-                null
-            }
-        data[key] = RedisValue.StringValue(value, expiryAt)
+        val stringValue = stringOps.createStringValue(value, expiryInMillis)
+        data[key] = stringValue
     }
 
     fun get(key: String): String? {
-        val redisValue = getRedisValueIfNotExpired(key) ?: return null
-
-        return (redisValue as? RedisValue.StringValue)?.value
+        val redisValue = getRedisValueIfNotExpired(key)
+        return stringOps.getStringValue(redisValue)
     }
 
+    // ===== List Operations =====
     fun rpush(
         key: String,
         elements: List<String>,
         expiryInMillis: Long? = null,
     ): Long? {
-        if (elements.isEmpty()) return null
         val existingValue = getRedisValueIfNotExpired(key)
 
-        when (existingValue) {
-            null -> {
-                val expiryAt =
-                    if (expiryInMillis != null) {
-                        System.currentTimeMillis() + expiryInMillis
-                    } else {
-                        null
-                    }
-                val newList = RedisValue.ListValue(elements.toMutableList(), expiryAt)
-                data[key] = newList
-                return newList.elements.size.toLong()
-            }
+        val result = listOps.rpush(existingValue, elements, expiryInMillis)
 
-            is RedisValue.ListValue -> {
-                existingValue.elements.addAll(elements)
-                val newLength = existingValue.elements.size.toLong()
-                return newLength
-            }
-
-            else -> return null
+        if (result == null) {
+            return null
         }
+
+        val (updatedList, newLength) = result
+        data[key] = updatedList
+        return newLength
     }
 
     fun lrange(
@@ -60,28 +48,13 @@ class InMemoryStore {
         stop: Int,
     ): List<String> {
         val redisValue = getRedisValueIfNotExpired(key)
-
-        if (redisValue == null || redisValue !is RedisValue.ListValue) {
-            return emptyList()
-        }
-
-        val listElements = redisValue.elements
-        val listSize = listElements.size
-
-        if (start >= listSize || start > stop) {
-            return emptyList()
-        }
-
-        val actualStop = stop.coerceAtMost(listSize - 1)
-        val result = listElements.subList(start, actualStop + 1)
-        return result
+        return listOps.lrange(redisValue, start, stop)
     }
 
     fun exists(key: String): Boolean = getRedisValueIfNotExpired(key) != null
 
     private fun getRedisValueIfNotExpired(key: String): RedisValue? {
         val redisValue = data[key] ?: return null
-
         val expiryAt = redisValue.expiryAt
 
         if (expiryAt != null && System.currentTimeMillis() > expiryAt) {
