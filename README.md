@@ -1,4 +1,8 @@
-[![progress-banner](https://backend.codecrafters.io/progress/redis/8b81f203-af3d-44d4-aa7d-6e4313d183d9)](https://app.codecrafters.io/users/codecrafters-bot?r=2qF)
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/ff658978-1866-4c2c-a5bd-f419b873f997" 
+       alt="Khichdi Logo" 
+       style="max-width: 150px; width: 20%; height: auto;">
+</p>
 
 This is a starting point for Kotlin solutions to the
 ["Build Your Own Redis" Challenge](https://codecrafters.io/challenges/redis).
