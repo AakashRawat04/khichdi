@@ -11,7 +11,8 @@ class CommandHandler {
         "PING" to PingCommand(),
         "ECHO" to EchoCommand(),
         "SET" to SetCommand(store),
-        "GET" to GetCommand(store)
+        "GET" to GetCommand(store),
+        "RPUSH" to RpushCommand(store)
     )
 
     fun handleCommand(input: String): String {

@@ -1,12 +1,7 @@
 package storage
 
-data class StoredValue(
-    val value: String,
-    val expiryAt: Long? = null,
-)
-
 class InMemoryStore {
-    private val data = mutableMapOf<String, StoredValue>()
+    private val data = mutableMapOf<String, RedisValue>()
 
     fun set(
         key: String,
@@ -19,19 +14,57 @@ class InMemoryStore {
             } else {
                 null
             }
-        data[key] = StoredValue(value, expiryAt)
+        data[key] = RedisValue.StringValue(value, expiryAt)
     }
 
     fun get(key: String): String? {
-        val storedValue = data[key] ?: return null
+        val redisValue = getRedisValueIfNotExpired(key) ?: return null
 
-        if (storedValue.expiryAt != null && System.currentTimeMillis() > storedValue.expiryAt) {
+        return (redisValue as? RedisValue.StringValue)?.value
+    }
+
+    fun rpush(
+        key: String,
+        element: String,
+        expiryInMillis: Long? = null,
+    ): Long? {
+        val existingValue = getRedisValueIfNotExpired(key)
+
+        when (existingValue) {
+            null -> {
+                val expiryAt =
+                    if (expiryInMillis != null) {
+                        System.currentTimeMillis() + expiryInMillis
+                    } else {
+                        null
+                    }
+                val newList = RedisValue.ListValue(mutableListOf(element), expiryAt)
+                data[key] = newList
+                return 1L
+            }
+
+            is RedisValue.ListValue -> {
+                existingValue.elements.add(element)
+                val newLength = existingValue.elements.size.toLong()
+                return newLength
+            }
+
+            else -> return null
+        }
+    }
+
+    fun exists(key: String): Boolean = getRedisValueIfNotExpired(key) != null
+
+    private fun getRedisValueIfNotExpired(key: String): RedisValue? {
+        val redisValue = data[key] ?: return null
+
+        val expiryAt = redisValue.expiryAt
+
+        if (expiryAt != null && System.currentTimeMillis() > expiryAt) {
             data.remove(key)
             return null
         }
 
-        return storedValue.value
+        return redisValue
     }
-
-    fun exists(key: String): Boolean = get(key) != null
 }
