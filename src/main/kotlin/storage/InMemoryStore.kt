@@ -54,6 +54,29 @@ class InMemoryStore {
         }
     }
 
+    fun lrange(
+        key: String,
+        start: Int,
+        stop: Int,
+    ): List<String> {
+        val redisValue = getRedisValueIfNotExpired(key)
+
+        if (redisValue == null || redisValue !is RedisValue.ListValue) {
+            return emptyList()
+        }
+
+        val listElements = redisValue.elements
+        val listSize = listElements.size
+
+        if (start >= listSize || start > stop) {
+            return emptyList()
+        }
+
+        val actualStop = stop.coerceAtMost(listSize - 1)
+        val result = listElements.subList(start, actualStop + 1)
+        return result
+    }
+
     fun exists(key: String): Boolean = getRedisValueIfNotExpired(key) != null
 
     private fun getRedisValueIfNotExpired(key: String): RedisValue? {

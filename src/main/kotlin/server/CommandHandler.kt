@@ -12,7 +12,8 @@ class CommandHandler {
         "ECHO" to EchoCommand(),
         "SET" to SetCommand(store),
         "GET" to GetCommand(store),
-        "RPUSH" to RpushCommand(store)
+        "RPUSH" to RpushCommand(store),
+        "LRANGE" to LrangeCommand(store),
     )
 
     fun handleCommand(input: String): String {
