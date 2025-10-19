@@ -22,10 +22,6 @@ class LrangeCommand(
             return encoder.encodeError("value is not an integer or out of range")
         }
 
-        if (start < 0 || stop < 0) {
-            return encoder.encodeError("negative indexes not yet supported")
-        }
-
         val elements = store.lrange(key, start, stop)
 
         return encoder.encodeArray(elements)

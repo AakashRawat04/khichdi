@@ -10,7 +10,6 @@ class ListOperations {
 
         when (existingValue) {
             null -> {
-                // Create new list
                 val expiryAt =
                     if (expiryInMillis != null) {
                         System.currentTimeMillis() + expiryInMillis
@@ -23,7 +22,6 @@ class ListOperations {
             }
 
             is RedisValue.ListValue -> {
-                // Append to existing list
                 existingValue.elements.addAll(elements)
                 val newLength = existingValue.elements.size.toLong()
                 return Pair(existingValue, newLength)
@@ -47,14 +45,35 @@ class ListOperations {
         val listElements = redisValue.elements
         val listSize = listElements.size
 
-        if (start >= listSize || start > stop) {
+        if (listSize == 0) {
             return emptyList()
         }
 
-        // Clamp stop to valid range
-        val actualStop = stop.coerceAtMost(listSize - 1)
+        val normalizedStart = normalizeIndex(start, listSize)
+        val normalizedStop = normalizeIndex(stop, listSize)
 
-        // Extract sublist (stop is inclusive, so +1 for subList's exclusive end)
-        return listElements.subList(start, actualStop + 1)
+        if (normalizedStart >= listSize || normalizedStart > normalizedStop) {
+            return emptyList()
+        }
+
+        val actualStop = normalizedStop.coerceAtMost(listSize - 1)
+
+        val result = listElements.subList(normalizedStart, actualStop + 1)
+        return result
     }
+
+    private fun normalizeIndex(
+        index: Int,
+        size: Int,
+    ): Int =
+        when {
+            index >= 0 -> index
+
+            index < 0 -> {
+                val normalized = size + index
+                normalized.coerceAtLeast(0)
+            }
+
+            else -> index
+        }
 }
