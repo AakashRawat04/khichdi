@@ -42,6 +42,24 @@ class InMemoryStore {
         return newLength
     }
 
+    fun lpush(
+        key: String,
+        elements: List<String>,
+        expiryInMillis: Long? = null,
+    ): Long? {
+        val existingValue = getRedisValueIfNotExpired(key)
+
+        val result = listOps.lpush(existingValue, elements, expiryInMillis)
+
+        if (result == null) {
+            return null
+        }
+
+        val (updatedList, newLength) = result
+        data[key] = updatedList
+        return newLength
+    }
+
     fun lrange(
         key: String,
         start: Int,

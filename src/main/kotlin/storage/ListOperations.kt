@@ -33,6 +33,39 @@ class ListOperations {
         }
     }
 
+    fun lpush(
+        existingValue: RedisValue?,
+        elements: List<String>,
+        expiryInMillis: Long?,
+    ): Pair<RedisValue.ListValue, Long>? {
+        if (elements.isEmpty()) return null
+
+        when (existingValue) {
+            null -> {
+                val expiryAt =
+                    if (expiryInMillis != null) {
+                        System.currentTimeMillis() + expiryInMillis
+                    } else {
+                        null
+                    }
+                val reversedElements = elements.reversed()
+                val newList = RedisValue.ListValue(reversedElements.toMutableList(), expiryAt)
+                val length = reversedElements.size.toLong()
+                return Pair(newList, length)
+            }
+
+            is RedisValue.ListValue -> {
+                existingValue.elements.addAll(0, elements.reversed())
+                val newLength = existingValue.elements.size.toLong()
+                return Pair(existingValue, newLength)
+            }
+
+            else -> {
+                return null
+            }
+        }
+    }
+
     fun lrange(
         redisValue: RedisValue?,
         start: Int,
