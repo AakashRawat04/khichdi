@@ -14,8 +14,8 @@ class RpushCommand(
         }
 
         val key = args[0]
-        val element = args[1]
-        val newLength = store.rpush(key, element)
+        val elements = args.drop(1)
+        val newLength = store.rpush(key, elements)
 
         if (newLength == null) {
             return encoder.encodeError("WRONGTYPE Operation against a key holding the wrong kind of value")

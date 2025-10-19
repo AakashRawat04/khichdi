@@ -25,9 +25,10 @@ class InMemoryStore {
 
     fun rpush(
         key: String,
-        element: String,
+        elements: List<String>,
         expiryInMillis: Long? = null,
     ): Long? {
+        if (elements.isEmpty()) return null
         val existingValue = getRedisValueIfNotExpired(key)
 
         when (existingValue) {
@@ -38,13 +39,13 @@ class InMemoryStore {
                     } else {
                         null
                     }
-                val newList = RedisValue.ListValue(mutableListOf(element), expiryAt)
+                val newList = RedisValue.ListValue(elements.toMutableList(), expiryAt)
                 data[key] = newList
-                return 1L
+                return newList.elements.size.toLong()
             }
 
             is RedisValue.ListValue -> {
-                existingValue.elements.add(element)
+                existingValue.elements.addAll(elements)
                 val newLength = existingValue.elements.size.toLong()
                 return newLength
             }
