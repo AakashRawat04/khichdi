@@ -95,9 +95,7 @@ class ListOperations {
         return result
     }
 
-    fun llen(
-        redisValue: RedisValue?,
-    ): Long {
+    fun llen(redisValue: RedisValue?): Long {
         if (redisValue == null || redisValue !is RedisValue.ListValue) {
             return 0L
         }
@@ -107,16 +105,28 @@ class ListOperations {
 
     fun lpop(
         redisValue: RedisValue?,
-    ): String? {
+        count: Int = 1,
+    ): List<String> {
+        if (count < 1) {
+            return emptyList()
+        }
+
         if (redisValue == null || redisValue !is RedisValue.ListValue) {
-            return null
+            return emptyList()
         }
 
-        if (redisValue.elements.isEmpty()) {
-            return null
+        val listElements = redisValue.elements
+
+        if (listElements.isEmpty()) {
+            return emptyList()
         }
 
-        return redisValue.elements.removeFirstOrNull()
+        val actualCount = count.coerceAtMost(listElements.size)
+        val poppedElements = listElements.subList(0, actualCount).toList()
+
+        listElements.subList(0, actualCount).clear()
+
+        return poppedElements
     }
 
     private fun normalizeIndex(

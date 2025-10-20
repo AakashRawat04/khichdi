@@ -14,12 +14,31 @@ class LpopCommand(
         }
 
         val key = args[0]
-        val removedValue = store.lpop(key)
+        val count =
+            if (args.size >= 2) {
+                val parsedCount = args[1].toIntOrNull()
+                if (parsedCount == null || parsedCount < 1) {
+                    return encoder.encodeError("count value is not an integer or out of range")
+                }
+                parsedCount
+            } else {
+                null
+            }
+        val pooppedElements =
+            if (count != null) {
+                store.lpop(key, count)
+            } else {
+                store.lpop(key, 1)
+            }
 
-        return if (removedValue != null) {
-            encoder.encodeBulkString(removedValue)
+        return if (count != null) {
+            encoder.encodeArray(pooppedElements)
         } else {
-            encoder.encodeNullBulkString()
+            if (pooppedElements.isEmpty()) {
+                encoder.encodeNullBulkString()
+            } else {
+                encoder.encodeBulkString(pooppedElements[0])
+            }
         }
     }
 }
