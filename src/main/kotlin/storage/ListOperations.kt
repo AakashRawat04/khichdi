@@ -105,6 +105,20 @@ class ListOperations {
         return redisValue.elements.size.toLong()
     }
 
+    fun lpop(
+        redisValue: RedisValue?,
+    ): String? {
+        if (redisValue == null || redisValue !is RedisValue.ListValue) {
+            return null
+        }
+
+        if (redisValue.elements.isEmpty()) {
+            return null
+        }
+
+        return redisValue.elements.removeFirstOrNull()
+    }
+
     private fun normalizeIndex(
         index: Int,
         size: Int,

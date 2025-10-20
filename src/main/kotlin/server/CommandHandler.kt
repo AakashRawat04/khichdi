@@ -16,6 +16,7 @@ class CommandHandler {
         "LRANGE" to LrangeCommand(store),
         "LPUSH" to LpushCommand(store),
         "LLEN" to LlenCommand(store),
+        "LPOP" to LpopCommand(store),
     )
 
     fun handleCommand(input: String): String {

@@ -76,6 +76,13 @@ class InMemoryStore {
         return listOps.llen(redisValue)
     }
 
+    fun lpop(
+        key: String,
+    ): String? {
+        val redisValue = getRedisValueIfNotExpired(key)
+        return listOps.lpop(redisValue)
+    }
+
     fun exists(key: String): Boolean = getRedisValueIfNotExpired(key) != null
 
     private fun getRedisValueIfNotExpired(key: String): RedisValue? {
