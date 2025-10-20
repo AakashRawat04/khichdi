@@ -95,6 +95,16 @@ class ListOperations {
         return result
     }
 
+    fun llen(
+        redisValue: RedisValue?,
+    ): Long {
+        if (redisValue == null || redisValue !is RedisValue.ListValue) {
+            return 0L
+        }
+
+        return redisValue.elements.size.toLong()
+    }
+
     private fun normalizeIndex(
         index: Int,
         size: Int,

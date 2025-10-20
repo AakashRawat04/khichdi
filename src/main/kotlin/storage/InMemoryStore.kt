@@ -69,6 +69,13 @@ class InMemoryStore {
         return listOps.lrange(redisValue, start, stop)
     }
 
+    fun llen(
+        key: String,
+    ): Long {
+        val redisValue = getRedisValueIfNotExpired(key)
+        return listOps.llen(redisValue)
+    }
+
     fun exists(key: String): Boolean = getRedisValueIfNotExpired(key) != null
 
     private fun getRedisValueIfNotExpired(key: String): RedisValue? {
