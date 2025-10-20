@@ -7,7 +7,8 @@ import java.io.InputStreamReader
 import java.io.PrintWriter
 
 class RedisServer(private val port: Int = 6379) {
-    private val commandHandler = CommandHandler()
+    private val blockedClientsManager = BlockedClientsManager()
+    private val commandHandler = CommandHandler(blockedClientsManager)
 
     fun start() {
         val serverSocket = ServerSocket(port)
@@ -29,9 +30,13 @@ class RedisServer(private val port: Int = 6379) {
             while (reader.readLine().also { line = it } != null) {
                 input.append(line).append("\r\n")
                 if (isCompleteCommand(input.toString())) {
-                    val response = commandHandler.handleCommand(input.toString())
-                    writer.print(response)
-                    writer.flush()
+                    val response = commandHandler.handleCommand(input.toString(), writer)
+
+                    // Only send response if it's not empty (empty means client is blocked)
+                    if (response.isNotEmpty()) {
+                        writer.print(response)
+                        writer.flush()
+                    }
                     input.clear()
                 }
             }

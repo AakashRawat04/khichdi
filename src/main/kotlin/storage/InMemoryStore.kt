@@ -1,6 +1,8 @@
 package storage
 
-class InMemoryStore {
+import server.BlockedClientsManager
+
+class InMemoryStore(private val blockedClientsManager: BlockedClientsManager? = null) {
     // The single source of truth: unified keyspace for all types
     private val data = mutableMapOf<String, RedisValue>()
 
@@ -39,6 +41,10 @@ class InMemoryStore {
 
         val (updatedList, newLength) = result
         data[key] = updatedList
+
+        // Notify blocked clients if any are waiting
+        notifyBlockedClientsIfAny(key)
+
         return newLength
     }
 
@@ -57,6 +63,10 @@ class InMemoryStore {
 
         val (updatedList, newLength) = result
         data[key] = updatedList
+
+        // Notify blocked clients if any are waiting
+        notifyBlockedClientsIfAny(key)
+
         return newLength
     }
 
@@ -88,6 +98,48 @@ class InMemoryStore {
     }
 
     fun exists(key: String): Boolean = getRedisValueIfNotExpired(key) != null
+
+    /**
+     * Blocking pop from list. Returns element immediately if available,
+     * or null if list is empty (caller should block).
+     */
+    fun blpop(key: String): String? {
+        val redisValue = getRedisValueIfNotExpired(key)
+        if (redisValue !is RedisValue.ListValue || redisValue.elements.isEmpty()) {
+            return null
+        }
+
+        val poppedElements = listOps.lpop(redisValue, 1)
+
+        if (redisValue.elements.isEmpty()) {
+            data.remove(key)
+        }
+
+        return poppedElements.firstOrNull()
+    }
+
+    /**
+     * Notify blocked clients when data is added to a list
+     */
+    private fun notifyBlockedClientsIfAny(key: String) {
+        blockedClientsManager?.let { manager ->
+            // Keep notifying clients while there are both elements and blocked clients
+            while (manager.hasBlockedClients(key)) {
+                val redisValue = getRedisValueIfNotExpired(key)
+                if (redisValue !is RedisValue.ListValue || redisValue.elements.isEmpty()) {
+                    break
+                }
+
+                val element = redisValue.elements.removeAt(0)
+                if (redisValue.elements.isEmpty()) {
+                    data.remove(key)
+                }
+
+                val notified = manager.notifyBlockedClient(key, element)
+                if (!notified) break
+            }
+        }
+    }
 
     private fun getRedisValueIfNotExpired(key: String): RedisValue? {
         val redisValue = data[key] ?: return null
