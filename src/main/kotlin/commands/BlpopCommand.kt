@@ -54,8 +54,7 @@ class BlpopCommand(
         blockedClientsManager.blockClient(key, writer, timeoutMillis)
 
         // Return empty string to signal "no immediate response"
-        // The writer will be used later when data arrives
+        // The writer will be used later when data arrives OR when timeout expires
         return ""
     }
 }
-

@@ -4,6 +4,8 @@ import protocol.RespEncoder
 import java.io.PrintWriter
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 /**
  * Manages clients that are blocked waiting for data on specific keys.
@@ -11,6 +13,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
  */
 class BlockedClientsManager {
     private val encoder = RespEncoder()
+    private val timeoutScheduler = Executors.newScheduledThreadPool(4)
 
     // Map of key -> queue of blocked clients (FIFO order)
     private val blockedClients = ConcurrentHashMap<String, ConcurrentLinkedQueue<BlockedClient>>()
@@ -19,7 +22,8 @@ class BlockedClientsManager {
         val key: String,
         val timestamp: Long,
         val writer: PrintWriter,
-        val timeout: Long
+        val timeout: Long,
+        var isTimedOut: Boolean = false
     )
 
     /**
@@ -35,6 +39,39 @@ class BlockedClientsManager {
 
         blockedClients.computeIfAbsent(key) { ConcurrentLinkedQueue() }.add(client)
         println("Client blocked on key: $key, total blocked: ${blockedClients[key]?.size}")
+
+        // Schedule timeout if not infinite
+        if (timeout != Long.MAX_VALUE) {
+            timeoutScheduler.schedule({
+                handleTimeout(key, client)
+            }, timeout, TimeUnit.MILLISECONDS)
+        }
+    }
+
+    /**
+     * Handle timeout for a blocked client
+     */
+    private fun handleTimeout(key: String, client: BlockedClient) {
+        val queue = blockedClients[key] ?: return
+
+        // Remove the client from the queue
+        if (queue.remove(client)) {
+            // Mark as timed out and send null array response
+            client.isTimedOut = true
+            try {
+                val response = encoder.encodeNullArray()
+                client.writer.print(response)
+                client.writer.flush()
+                println("Client timed out on key: $key")
+            } catch (e: Exception) {
+                println("Failed to send timeout response: ${e.message}")
+            }
+
+            // Clean up empty queues
+            if (queue.isEmpty()) {
+                blockedClients.remove(key)
+            }
+        }
     }
 
     /**
@@ -48,6 +85,11 @@ class BlockedClientsManager {
         // Clean up empty queues
         if (queue.isEmpty()) {
             blockedClients.remove(key)
+        }
+
+        // Only send response if client hasn't timed out
+        if (client.isTimedOut) {
+            return false
         }
 
         // Send response to the blocked client
@@ -78,4 +120,3 @@ class BlockedClientsManager {
         return blockedClients[key]?.size ?: 0
     }
 }
-
