@@ -26,7 +26,11 @@ class XaddCommand(
             message[fieldValues[i]] = fieldValues[i + 1]
         }
 
-        val entryId = store.xadd(key, id, message)
+        val (entryId, errorMessage) = store.xadd(key, id, message)
+
+        if (errorMessage != null) {
+            return encoder.encodeError(errorMessage)
+        }
 
         if (entryId == null) {
             return encoder.encodeError("WRONGTYPE Operation against a key holding the wrong kind of value")

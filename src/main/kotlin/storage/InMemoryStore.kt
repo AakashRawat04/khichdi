@@ -129,14 +129,20 @@ class InMemoryStore(private val blockedClientsManager: BlockedClientsManager? = 
         entryId: String,
         fields: MutableMap<String, String>,
         expiryInMillis: Long? = null,
-    ): String? {
+    ): Pair<String?, String?> {
         val existingValue = getRedisValueIfNotExpired(key)
 
-        val result = streamOps.xadd(existingValue, entryId, fields, expiryInMillis)
+        val (result, errorMessage) = streamOps.xadd(existingValue, entryId, fields, expiryInMillis)
 
-        data[key] = result
+        if (errorMessage != null) {
+            return Pair(null, errorMessage)
+        }
 
-        return entryId
+        result?.let {
+            data[key] = it
+        }
+
+        return Pair(entryId, errorMessage)
     }
 
     /**
