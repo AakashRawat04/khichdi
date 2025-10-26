@@ -23,6 +23,7 @@ class CommandHandler(
         "LLEN" to LlenCommand(store),
         "LPOP" to LpopCommand(store),
         "TYPE" to TypeCommand(store),
+        "XADD" to XaddCommand(store),
     )
 
     fun handleCommand(input: String, writer: PrintWriter? = null): String {

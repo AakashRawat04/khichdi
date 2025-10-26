@@ -9,6 +9,7 @@ class InMemoryStore(private val blockedClientsManager: BlockedClientsManager? = 
     // Delegate type-specific operations to specialized classes
     private val stringOps = StringOperations()
     private val listOps = ListOperations()
+    private val streamOps = StreamOperations()
 
     // ===== String Operations =====
     fun set(
@@ -120,11 +121,22 @@ class InMemoryStore(private val blockedClientsManager: BlockedClientsManager? = 
 
     fun type(key: String): String {
         val redisValue = getRedisValueIfNotExpired(key) ?: return "none"
-        return when (redisValue) {
-            is RedisValue.StringValue -> "string"
-            is RedisValue.ListValue -> "list"
-            else -> "none"
-        }
+        return redisValue.type
+    }
+
+    fun xadd(
+        key: String,
+        entryId: String,
+        fields: MutableMap<String, String>,
+        expiryInMillis: Long? = null,
+    ): String? {
+        val existingValue = getRedisValueIfNotExpired(key)
+
+        val result = streamOps.xadd(existingValue, entryId, fields, expiryInMillis)
+
+        data[key] = result
+
+        return entryId
     }
 
     /**
