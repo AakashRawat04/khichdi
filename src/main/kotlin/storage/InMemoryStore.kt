@@ -118,6 +118,15 @@ class InMemoryStore(private val blockedClientsManager: BlockedClientsManager? = 
         return poppedElements.firstOrNull()
     }
 
+    fun type(key: String): String {
+        val redisValue = getRedisValueIfNotExpired(key) ?: return "none"
+        return when (redisValue) {
+            is RedisValue.StringValue -> "string"
+            is RedisValue.ListValue -> "list"
+            else -> "none"
+        }
+    }
+
     /**
      * Notify blocked clients when data is added to a list
      */

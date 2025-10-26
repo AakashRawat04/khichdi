@@ -22,6 +22,7 @@ class CommandHandler(
         "LPUSH" to LpushCommand(store),
         "LLEN" to LlenCommand(store),
         "LPOP" to LpopCommand(store),
+        "TYPE" to TypeCommand(store),
     )
 
     fun handleCommand(input: String, writer: PrintWriter? = null): String {
