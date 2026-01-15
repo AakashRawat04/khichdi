@@ -84,7 +84,7 @@ src/main/kotlin/
 1. Clone the repository:
 ```bash
 git clone <repository-url>
-cd codecrafters-redis-kotlin
+cd khichdi
 ```
 
 2. Ensure you have Kotlin 2.0+ and JDK 21 installed:
